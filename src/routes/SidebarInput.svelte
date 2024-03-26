@@ -25,7 +25,7 @@
     on:mousedown={() => focused = true}
     use:clickOutside={() => focused = false}
 
-    class="w-full h-fit min-h-9 flex flex-col bg-[#252525] border border-[rgba(255,255,255,0.03)] rounded-md py-2 px-3"
+    class="w-full h-fit min-h-9 flex flex-col bg-[#252525] border border-[rgba(255,255,255,0.03)] rounded-md py-2 px-3 cursor-text"
 >
     <p class="text-[11px] text-white/50 leading-5 select-none">{title}</p>
     {#if value || focused}

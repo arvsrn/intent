@@ -3,16 +3,19 @@
     import Task from "./Task.svelte";
     import { getLists, getTasks } from "$lib/database";
     import type { StateList, List as ListSchema } from "$lib/schema";
-    import { appState, databaseState, clickOutside, blurInUpwards } from "$lib";
+    import { appState, databaseState, clickOutside, blurInDownwards } from "$lib";
     import { onMount } from "svelte";
     import Blanket from "./Blanket.svelte";
     import SidebarInput from "./SidebarInput.svelte";
     import SidebarInput2 from "./SidebarInput2.svelte";
+    import { DropdownMenu } from "bits-ui";
 
     let mounted: boolean = false;
 
     let left: number = 0;
     let width: number = 46.234375;
+
+    let accountDropdownOpen: boolean = false;
 
     let view: 'timeline' | 'board' = 'board';
     let sidebarNavActive = 1;
@@ -45,35 +48,45 @@
 <main class="w-screen h-screen bg-gray2 flex flex-row overflow-hidden">
     <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
     <aside class="w-60 h-full flex-none flex flex-row bg-gray1 border-r border-white/5 overflow-hidden">
-        <div class="w-60 h-full flex-none flex flex-col" class:editing={$appState.editingTask} class:not-editing={!$appState.editingTask}>
+        <div class="w-60 h-full flex-none flex flex-col" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
             <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
-                <button class="size-fit p-1.5 -ml-1.5 flex flex-row gap-1.5 hover:bg-white/5 rounded-md items-center">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="18" height="18" rx="6" fill="#4CA8DF"/>
-                    </svg>
-                    <p class="text-xs text-white leading-[18px]">Truelines</p>
-                    <svg class="-mx-1" width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 5.59993L7.5 3.2666L10 5.59993" stroke="#A0A0A0"/>
-                        <path d="M10 8.3999L7.5 10.7332L5 8.3999" stroke="#A0A0A0"/>
-                    </svg>
-                </button>
+                <DropdownMenu.Root bind:open={accountDropdownOpen}>
+                    <DropdownMenu.Trigger>
+                        <button class="size-fit p-1.5 -ml-1.5 flex flex-row gap-1.5 hover:bg-white/5 rounded-md items-center">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="18" height="18" rx="6" fill="#4CA8DF"/>
+                            </svg>
+                            <p class="text-xs text-white leading-[18px]">Truelines</p>
+                            <svg class="-mx-1" width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 5.59993L7.5 3.2666L10 5.59993" stroke="#A0A0A0"/>
+                                <path d="M10 8.3999L7.5 10.7332L5 8.3999" stroke="#A0A0A0"/>
+                            </svg>
+                        </button>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content transition={blurInDownwards} transitionConfig={{ duration: 75 }} sideOffset={4} align={"start"} alignOffset={-6} class="shadow-[0px_97px_39px_rgba(0,0,0,0.02),0px_54px_33px_rgba(0,0,0,0.08),0px_24px_24px_rgba(0,0,0,0.13),0px_6px_13px_rgba(0,0,0,0.15)] w-[204px] h-[400px] rounded-md bg-[#313131] border border-[#ffffff06] "> 
+
+                    </DropdownMenu.Content>
+                </DropdownMenu.Root>
     
                 <img src="https://nmrxzedrzfuiahctmrtt.supabase.co/storage/v1/object/public/profile-pictures/arvsrn.png?t=2024-03-06T14%3A03%3A33.796Z" class="cursor-pointer size-[18px] rounded-full select-none ml-auto" draggable="false" alt="">
             </nav>
-            <nav class="w-full h-9 px-6 gap-3 flex flex-row border-b border-white/5 select-none">
-                <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 1} on:click={() => sidebarNavActive = 1}>Assigned to you</button>
-                <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 2} on:click={() => sidebarNavActive = 2}>Progress</button>
-            </nav>
-            <div class="w-full h-fit p-3 flex flex-col gap-1.5">
-                {#if mounted}
-                    {#each $databaseState.lists[0].tasks as task}
-                        <Task {task} fill></Task>
-                    {/each}
-                {/if}
+            
+            <div class:fade={accountDropdownOpen} class="transition-all duration-75 ease-in-out">
+                <nav class="w-full h-9 px-6 gap-3 flex flex-row border-b border-white/5 select-none">
+                    <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 1} on:click={() => sidebarNavActive = 1}>Assigned to you</button>
+                    <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 2} on:click={() => sidebarNavActive = 2}>Progress</button>
+                </nav>
+                <div class="w-full h-fit p-3 flex flex-col gap-1.5">
+                    {#if mounted}
+                        {#each $databaseState.lists[0].tasks as task}
+                            <Task {task} fill></Task>
+                        {/each}
+                    {/if}
+                </div>
             </div>
         </div>
 
-        <div class="w-60 h-full flex-none" class:editing={$appState.editingTask} class:not-editing={!$appState.editingTask}>
+        <div class="w-60 h-full flex-none" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
             <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
                 <p class="text-xs text-white leading-5">Editing Event</p>
                 <button on:click={() => $appState.editingTask = null} class="bg-white/10 hover:bg-white/15 size-5 rounded-md ml-auto flex items-center justify-center text-white">
@@ -136,13 +149,17 @@
         }
     }
 
-    .editing {
+    .slid {
         animation: toEditing 150ms var(--ease);
         animation-fill-mode: forwards;
     }
 
-    .not-editing {
+    .unslid {
         animation: fromEditing 150ms var(--ease);
         animation-fill-mode: forwards;
+    }
+
+    .fade {
+        opacity: 0.5;
     }
 </style>
