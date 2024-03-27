@@ -1,6 +1,7 @@
 <script lang="ts">
     import List from "./List.svelte";
     import Task from "./Task.svelte";
+    import type { Task as TaskSchema } from "$lib/schema";
     import { getLists, getTasks } from "$lib/database";
     import type { StateList, List as ListSchema } from "$lib/schema";
     import { appState, databaseState, clickOutside, blurInDownwards, syncing } from "$lib";
@@ -9,6 +10,7 @@
     import SidebarInput from "./SidebarInput.svelte";
     import { DropdownMenu } from "bits-ui";
     import { fade } from "svelte/transition";
+    import { supabase } from "$lib/supabaseClient";
 
     let mounted: boolean = false;
 
@@ -43,6 +45,93 @@
 
         mounted = true;
     });
+
+    const handleInserts = (payload: object) => {
+        if (!mounted)
+            return;
+        
+        // @ts-ignore
+        let task: TaskSchema = payload.new;
+        const list_idx = $databaseState.lists.findIndex(x => x.id === task.list_id);
+        const impostor = $databaseState.lists[list_idx].tasks.findIndex(x => x.id === "");
+        
+        if (impostor !== -1)
+            $databaseState.lists[list_idx].tasks.splice(impostor, 1);
+
+        $databaseState.lists[list_idx].tasks.push(task);
+        $databaseState = $databaseState;
+    }
+
+    const handleDeletes = async (payload: object) => {
+        // @ts-ignore
+        const task_id = payload.old.id;
+        let task_coords: [number, number] = [-1, -1];
+
+        for (const [i, list] of $databaseState.lists.entries()) {
+            const index = list.tasks.findIndex(x => x.id === task_id);
+
+            if (index === -1) continue;
+            else {
+                task_coords = [i, index];
+                break;
+            };
+        }
+
+        if (task_coords[0] !== -1 && task_coords[1] !== -1) {
+            $databaseState.lists[task_coords[0]].tasks.splice(task_coords[1], 1);
+            $databaseState = $databaseState;
+        }
+    }
+
+    const handleUpdates = async (payload: object) => {
+        console.log('a');
+        
+        // @ts-ignore
+        const task_id = payload.old.id;
+        let task_coords: [number, number] = [-1, -1];
+        let old_task: TaskSchema | null = null;
+
+        for (const [i, list] of $databaseState.lists.entries()) {
+            const index = list.tasks.findIndex(x => x.id === task_id);
+
+            if (index === -1) continue;
+            else {
+                task_coords = [i, index];
+                old_task = list.tasks[index];
+                break;
+            };
+        }
+
+        if (!old_task) 
+            return console.error('yo what');
+    
+        const originList = $databaseState.lists.find(x => x.id === old_task?.list_id)?.tasks;
+        // @ts-ignore
+        const finalList = $databaseState.lists.find(x => x.id === payload.new.list_id)?.tasks;
+
+        if (originList && finalList) {
+            originList.splice(originList.findIndex(x => x.id === old_task?.id), 1)[0];
+            // @ts-ignore
+            finalList.push(payload.new);
+            
+            $databaseState = $databaseState;
+        }
+    }
+
+    supabase
+        .channel('channel1')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tasks' }, handleInserts)
+        .subscribe();
+    
+    supabase
+        .channel('channel2')
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'tasks' }, handleDeletes)
+        .subscribe();
+
+    supabase
+        .channel('channel3')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tasks' }, handleUpdates)
+        .subscribe();
 </script>
 
 <main class="w-screen h-screen bg-gray2 flex flex-row overflow-hidden">

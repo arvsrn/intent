@@ -66,8 +66,6 @@
             .delete()
             .eq('id', task.id);
         $syncing = false;
-
-        console.log(list);
     }
 </script>
 

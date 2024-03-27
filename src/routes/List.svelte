@@ -102,15 +102,15 @@
                         list_id: list.id,
                     });
                 
-                let task = await supabase
-                    .from('tasks')
-                    .select()
-                    .eq('index', idx);
-
-                if (task.data) { 
-                    list.tasks[list.tasks.length - 1].id = task.data[0].id;
-                    $databaseState.lists[$databaseState.lists.findIndex(x => x.id === list.id)].tasks = list.tasks;
-                }
+                // let task = await supabase
+                //     .from('tasks')
+                //     .select()
+                //     .eq('index', idx);
+                // 
+                // if (task.data) { 
+                //     list.tasks[list.tasks.length - 1].id = task.data[0].id;
+                //     $databaseState.lists[$databaseState.lists.findIndex(x => x.id === list.id)].tasks = list.tasks;
+                // }
 
                 $syncing = false;
             }
