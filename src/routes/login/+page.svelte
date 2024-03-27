@@ -1,41 +1,33 @@
 <script lang="ts">
     import { supabase } from "$lib/supabaseClient";
     import SidebarInput from "../SidebarInput.svelte";
-    import SidebarInput2 from "../SidebarInput2.svelte";
     let sent: boolean = false;
     let showLoader: boolean = false;
     let email: string = "";
 </script>
 
 <main class="w-screen h-screen bg-gray2 flex flex-col gap-2 items-center justify-center">
-    <!--
-        <input bind:value={email} class="w-60 h-9 rounded-lg border border-[#FFFFFF06] bg-[#FFFFFF06] outline-none px-3 text-xs text-white placeholder:text-white/50" placeholder="Email..." type="text">
-        <button on:click={async () => {
-            if (/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-                sent = false;
-                showLoader = true;
-                let { data, error } = await supabase.auth.signInWithOtp({ email });
-                console.log(data, error);
-                showLoader = false;
-                sent = true;
-            } else {
-                // TODO
-                alert('invalid email bozo')
-            }
-        }} class="w-60 h-[35px] rounded-lg bg-white/20 border border-[#FFFFFF06] flex items-center justify-center text-xs text-white select-none hover:bg-white/25">
-            {#if showLoader}
-                <div class="loader"></div>
-            {:else}
-                {sent ? 'Sent!' : '✨ Send Magic Link →'}
-            {/if}
-        </button>
-        <p class="w-60 h-fit leading-5 text-xs text-white/50 text-center">An account will be created automatically if you don't have one.</p>
-    -->
-
-    <main class="flex flex-col gap-2 w-[300px]">
-        <SidebarInput title="Title" />
-        <SidebarInput2 title="Description" />
-    </main>
+    <input bind:value={email} class="w-60 h-9 rounded-lg border border-[#FFFFFF06] bg-[#FFFFFF06] outline-none px-3 text-xs text-white placeholder:text-white/50" placeholder="Email..." type="text">
+    <button on:click={async () => {
+        if (/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+            sent = false;
+            showLoader = true;
+            let { data, error } = await supabase.auth.signInWithOtp({ email });
+            console.log(data, error);
+            showLoader = false;
+            sent = true;
+        } else {
+            // TODO
+            alert('invalid email bozo')
+        }
+    }} class="w-60 h-[35px] rounded-lg bg-white/20 border border-[#FFFFFF06] flex items-center justify-center text-xs text-white select-none hover:bg-white/25">
+        {#if showLoader}
+            <div class="loader"></div>
+        {:else}
+            {sent ? 'Sent!' : '✨ Send Magic Link →'}
+        {/if}
+    </button>
+    <p class="w-60 h-fit leading-5 text-xs text-white/50 text-center">An account will be created automatically if you don't have one.</p>
 </main>
 
 <style>

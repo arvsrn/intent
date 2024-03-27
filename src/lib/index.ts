@@ -26,6 +26,7 @@ export let appState = writable<AppState>({
 });
 
 export let databaseState = writable<DatabaseState>();
+export let syncing = writable<boolean>(false);
 
 export let colors = ["#F24822", "#FFA500", "#FFC700", "#11DF25", "#258DEC", "#871DF0", "#D448D4", "#4F2C18", "#D8D8D8", "#4A4A4A"];
 

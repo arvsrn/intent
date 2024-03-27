@@ -8,6 +8,7 @@
     
     let dragging: boolean = false;
     let position: [number, number] = [0, 0];
+    let predrag: [number, number] = [0, 0];
     let rotation: number = 0;
     let self: HTMLElement;
 
@@ -17,10 +18,9 @@
             $appState.draggingTask = task;
 
             $appState.draggingTimeout = window.setTimeout(() => {
-                const element = event.target as HTMLElement;
-                const boundingBox = element.getBoundingClientRect();
+                const boundingBox = self.getBoundingClientRect();
                 
-                position = [boundingBox.left, boundingBox.top];
+                position = [predrag[0] - (boundingBox.width / 2), predrag[1] - (boundingBox.height / 2)];
                 dragging = true;
 
                 $appState.isDraggingTask = true;
@@ -36,6 +36,8 @@
             position[1] += event.movementY;
 
             rotation = event.movementX / 5;
+        } else {
+            predrag = [event.clientX, event.clientY];
         }
     };
 

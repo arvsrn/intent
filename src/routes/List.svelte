@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { appState, clickOutside, colors, databaseState, sortTasks } from "$lib";
+    import { appState, clickOutside, colors, databaseState, sortTasks, syncing } from "$lib";
     import { getTasks } from "$lib/database";
     import type { StateList } from "$lib/schema";
     import { slide } from "svelte/transition";
@@ -12,6 +12,8 @@
     let draggingHere: boolean = false;
     let self: HTMLElement;
     let dropPosition: number = 0;
+    let newTaskTitle: string = "";
+    let sortedTasks = sortTasks(list.tasks);
 
     const onMouseMove = (event: MouseEvent) => {
         if (draggingHere && $appState.isDraggingTask) {
@@ -70,6 +72,48 @@
             $appState.draggingTask = null;
         }
     };
+
+    const newTaskHandleEnter = async (event: KeyboardEvent) => {
+        if (event.key === "Enter") {
+            if (newTaskTitle) {
+                let idx = sortedTasks[sortedTasks.length - 1].index + 64;
+                
+                list.tasks = [...list.tasks, {
+                    index: idx,
+                    title: newTaskTitle,
+                    description: "",
+                    id: '',
+                    list_id: list.id,
+                }];
+
+                const newTaskTitle_ = newTaskTitle;
+                newTaskTitle = "";
+
+                $syncing = true;
+                
+                const { error } = await supabase
+                    .from('tasks')
+                    .insert({ 
+                        index: idx,
+                        title: newTaskTitle_,
+                        description: "", 
+                        list_id: list.id,
+                    });
+                
+                let task = await supabase
+                    .from('tasks')
+                    .select()
+                    .eq('index', idx);
+
+                if (task.data) 
+                    list.tasks[list.tasks.length - 1].id = task.data[0].id;
+
+                $syncing = false;
+            }
+        }
+    }
+
+    $: list.tasks, sortedTasks = sortTasks(list.tasks);
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
@@ -89,7 +133,7 @@
         <p class="leading-5 text-[11px] text-white select-none">{list.name}</p>
     </div>
     
-    {#each sortTasks(list.tasks) as task, i}
+    {#each sortedTasks as task, i}
         {#if i === dropPosition && !(dropPosition >= list.tasks.length - ($appState.draggingTask?.list_id === list.id ? 1 : 0)) && draggingHere && $appState.isDraggingTask}
             <div id="shadow" style:height="{$appState.draggingTaskHeight}px" class="w-[306px] h-9 border border-white/10 rounded-md bg-[#FFFFFF06] border-dashed flex-none"></div>
         {/if}
@@ -102,7 +146,7 @@
     {/if}
     
     <div class="w-[306px] h-fit sticky bottom-0 bg-[#252525] flex flex-col gap-1.5 input">
-        <input on:click={() => addTaskSelected = true} use:clickOutside={() => addTaskSelected = false} class="placeholder:select-none flex-none w-full h-9 rounded-md border border-white/10 bg-transparent outline-none px-3 text-xs text-white placeholder:text-white/50" type="text" placeholder="Add task...">
+        <input on:keydown={newTaskHandleEnter} bind:value={newTaskTitle} on:click={() => addTaskSelected = true} use:clickOutside={() => addTaskSelected = false} class="placeholder:select-none flex-none w-full h-9 rounded-md border border-white/10 bg-transparent outline-none px-3 text-xs text-white placeholder:text-white/50" type="text" placeholder="Add task...">
 
         {#if addTaskSelected}
             <p class="text-[11px] ml-3 -mt-1 text-white/50 select-none flex-none" transition:slide={{ duration: 150 }}>↵ Enter to create</p>

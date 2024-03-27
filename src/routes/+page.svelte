@@ -3,12 +3,12 @@
     import Task from "./Task.svelte";
     import { getLists, getTasks } from "$lib/database";
     import type { StateList, List as ListSchema } from "$lib/schema";
-    import { appState, databaseState, clickOutside, blurInDownwards } from "$lib";
+    import { appState, databaseState, clickOutside, blurInDownwards, syncing } from "$lib";
     import { onMount } from "svelte";
     import Blanket from "./Blanket.svelte";
     import SidebarInput from "./SidebarInput.svelte";
-    import SidebarInput2 from "./SidebarInput2.svelte";
     import { DropdownMenu } from "bits-ui";
+    import { fade } from "svelte/transition";
 
     let mounted: boolean = false;
 
@@ -86,6 +86,7 @@
             </div>
         </div>
 
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div class="w-60 h-full flex-none" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
             <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
                 <p class="text-xs text-white leading-5">Editing Event</p>
@@ -95,19 +96,40 @@
                     </svg>                        
                 </button>
             </nav>
-            <div class="w-full h-fit flex flex-col gap-1.5 p-3">
+            <div class="w-full h-fit flex flex-col gap-2 p-3 border-b border-white/5">
                 <SidebarInput title="Title" value="Perform a thorough security audit and vulnerability assessment of the application to identify and address potential security risks, vulnerabilities, and weaknesses." />
-                <SidebarInput2 title="Description" />
+                <SidebarInput title="Description" value="" />
+            </div>
+            <div class="w-full h-fit p-3 flex flex-row gap-1 border-b border-white/5">
+                <div class="rounded px-1 w-fit h-fit select-none bg-[#F24822] text-white text-[11px] leading-[19px]">
+                    Backend
+                </div>
+                <div class="size-[19px] flex items-center justify-center bg-white/10 hover:bg-white/15 cursor-pointer rounded">
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 7.5H3M7.5 12V3" stroke="white" stroke-opacity="0.75"/>
+                    </svg>                        
+                </div>
             </div>
         </div>
     </aside>
     
     <div class="size-full flex flex-col gap-4 p-8">
-        <div class="h-6 w-fit rounded-md bg-white/5 flex flex-row relative">
-            <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="1" on:click={set}>Board</div>
-            <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="2" on:click={set}>Timeline</div>
-
-            <div class="absolute h-full rounded-md bg-white/10 transition-all duration-75 ease-in-out" style:left="{left}px" style:width="{width}px"></div>
+        <div class="w-fit h-fit flex flex-row gap-3">
+            <div class="h-6 w-fit rounded-md bg-white/5 flex flex-row relative">
+                <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="1" on:click={set}>Board</div>
+                <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="2" on:click={set}>Timeline</div>
+    
+                <div class="absolute h-full rounded-md bg-white/10 transition-all duration-75 ease-in-out" style:left="{left}px" style:width="{width}px"></div>
+            </div>
+    
+            <div class="size-6 flex items-center justify-center text-white/50">
+                {#if $syncing}
+                    <svg transition:fade={{ duration: 75 }} width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4.625 11.5C0.870786 11.5 0.435941 5.53608 4.20355 5.02818C5.5349 1.16307 10.9999 2.15007 10.9999 6.25C14.2955 6.25 14.1678 11.5 10.9999 11.5H10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7.5 12.5L7.5 6.5M7.5 6.5L5.5 8.5M7.5 6.5L9.5 8.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>       
+                {/if}             
+            </div>
         </div>
 
         <div class="w-fit flex flex-row gap-4">
