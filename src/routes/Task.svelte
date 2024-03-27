@@ -1,6 +1,9 @@
 <script lang="ts">
-    import { appState } from "$lib";
+    import { appState, clickOutside, databaseState } from "$lib";
     import type { Task } from "$lib/schema";
+    import { ContextMenu } from "bits-ui";
+    import { supabase } from "$lib/supabaseClient";
+    import { syncing } from "$lib";
 
     export let task: Task;
     export let fill: boolean = false;
@@ -13,7 +16,7 @@
     let self: HTMLElement;
 
     const onMouseDown = (event: MouseEvent) => {
-        if (draggable) {
+        if (draggable && event.button === 0) {
             $appState.lastMouseDown = Date.now();
             $appState.draggingTask = task;
 
@@ -47,27 +50,54 @@
         
         $appState.isDraggingTask = false;
         clearTimeout($appState.draggingTimeout);
+    };
+
+    const del = async () => {
+        const list = $databaseState.lists.find(x => x.id === task.list_id)?.tasks;
+        
+        if (list)
+            list.splice(list.findIndex(x => x.id === task.id), 1);
+    
+        $databaseState = $databaseState;
+
+        $syncing = true;
+        await supabase
+            .from('tasks')
+            .delete()
+            .eq('id', task.id);
+        $syncing = false;
+
+        console.log(list);
     }
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-<main 
-    bind:this={self}
-    on:mousedown={onMouseDown}
+<ContextMenu.Root>
+    <ContextMenu.Trigger>
+        <main 
+            bind:this={self}
+            on:mousedown={onMouseDown}
 
-    style:transform="rotateZ({rotation}deg)" 
-    style:--x="{position[0]}px" 
-    style:--y="{position[1]}px" 
+            style:transform="rotateZ({rotation}deg)" 
+            style:--x="{position[0]}px" 
+            style:--y="{position[1]}px" 
 
-    class="w-[306px] h-fit rounded-md border border-[#FFFFFF06] bg-[#313131] hover:bg-[#414141] px-3 py-[7px] cursor-pointer" 
-    class:dragging={dragging}
-    class:fill={fill}
+            class="w-[306px] h-fit rounded-md border border-[#FFFFFF06] bg-[#313131] hover:bg-[#414141] px-3 py-[7px] cursor-pointer" 
+            class:dragging={dragging}
+            class:fill={fill}
 
-    data-is-task
-    data-is-dragging="{dragging}"
->
-    <p draggable="false" class="select-none w-full leading-5 text-xs text-white">{task.title}</p>
-</main>
+            data-is-task
+            data-is-dragging="{dragging}"
+        >
+            <p draggable="false" class="select-none w-full leading-5 text-xs text-white">{task.title}</p>
+        </main>
+    </ContextMenu.Trigger>
+    <ContextMenu.Content class="w-32 h-fit outline-none rounded-md bg-[#4C4C4C]">
+        <ContextMenu.Item class="h-[25px] text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Copy</ContextMenu.Item>
+        <ContextMenu.Item class="h-[25px] text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Paste here</ContextMenu.Item>
+        <ContextMenu.Item on:click={() => del()} class="h-[25px] text-xs text-red-400 px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Delete</ContextMenu.Item>
+    </ContextMenu.Content>
+</ContextMenu.Root>
 
 <svelte:window on:mousemove={onMouseMove} on:mouseup={onMouseUp}></svelte:window>
 

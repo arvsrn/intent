@@ -76,7 +76,9 @@
     const newTaskHandleEnter = async (event: KeyboardEvent) => {
         if (event.key === "Enter") {
             if (newTaskTitle) {
-                let idx = sortedTasks[sortedTasks.length - 1].index + 64;
+                let idx = sortedTasks.length > 0
+                    ? sortedTasks[sortedTasks.length - 1].index + 64 
+                    : 0;
                 
                 list.tasks = [...list.tasks, {
                     index: idx,
@@ -105,8 +107,10 @@
                     .select()
                     .eq('index', idx);
 
-                if (task.data) 
+                if (task.data) { 
                     list.tasks[list.tasks.length - 1].id = task.data[0].id;
+                    $databaseState.lists[$databaseState.lists.findIndex(x => x.id === list.id)].tasks = list.tasks;
+                }
 
                 $syncing = false;
             }
