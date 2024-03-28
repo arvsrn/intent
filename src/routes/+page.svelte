@@ -1,16 +1,15 @@
 <script lang="ts">
     import List from "./List.svelte";
     import Task from "./Task.svelte";
-    import type { Task as TaskSchema } from "$lib/schema";
+    import type { Task as TaskSchema, StateList, List as ListSchema } from "$lib/schema";
     import { getLists, getTasks } from "$lib/database";
-    import type { StateList, List as ListSchema } from "$lib/schema";
-    import { appState, databaseState, clickOutside, blurInDownwards, syncing } from "$lib";
+    import { appState, databaseState, clickOutside, blurInDownwards, syncing, type LocalTeam, type LocalProject, type WithId } from "$lib";
     import { onMount } from "svelte";
-    import Blanket from "./Blanket.svelte";
     import SidebarInput from "./SidebarInput.svelte";
     import { DropdownMenu } from "bits-ui";
     import { fade } from "svelte/transition";
     import { supabase } from "$lib/supabaseClient";
+    import Loader from "./Loader.svelte";
 
     let mounted: boolean = false;
 
@@ -36,14 +35,85 @@
     };
 
     onMount(async () => {
-        const project = '4d080119-2a1c-49e7-97e5-76d5eb0e2ca2';
-        const lists = await Promise.all((await getLists(project)).map(async (x: ListSchema): Promise<StateList> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user === null) {
+            window.location.assign("/login");
+        }
+
+        const userData = await supabase.from("users").select().eq('id', user?.id);
+
+        if (userData.data?.length === 0) {
+            window.location.assign('/onboarding');
+        }
+
+        let lists: StateList[];
+        let project: WithId<string> = {
+            name: "",
+            id: "",
+        };
+        let team: WithId<string> = {
+            name: "",
+            id: "",
+        };
+
+        const teams = await supabase.from("teams").select();
+
+        if (!teams.data || teams.data.length < 1) {
+            window.location.assign('/teams/create');
+        }
+
+        // @ts-ignore
+        const projects = await supabase.from("projects").select().eq('team_id', teams.data[0].id);
+
+        if (!projects.data || projects.data.length < 1) {
+            // TODO: no projects, take to project creation screen
+        }
+
+        // @ts-ignore
+        project.id = projects.data[0].id;
+        // @ts-ignore
+        project.name = projects.data[0].name;
+        // @ts-ignore
+        team.id = teams.data[0].id;
+        // @ts-ignore
+        team.name = teams.data[0].name;
+
+        lists = await Promise.all((await getLists(project.id)).map(async (x: ListSchema): Promise<StateList> => {
             return { ...x, tasks: await getTasks(x.id) };
         }));
-        
-        databaseState.set({ project, lists });
 
+        databaseState.set({ team, project, lists, teams: [] });
         mounted = true;
+
+        if (!teams.data)
+            return console.error('teams is ', teams);
+
+        let localTeams: LocalTeam[] = [];
+
+        for (const team of teams.data) {
+            const projects = await supabase.from("projects").select().eq('team_id', team.id);
+
+            let localProjects: LocalProject[] = [];
+
+            if (!projects.data)
+                return console.error('projects is ', projects);            
+
+            for (const project of projects.data) {
+                localProjects.push({
+                    name: project.name,
+                    id: project.id,
+                });
+            }
+
+            localTeams.push({
+                name: team.name,
+                id: team.id,
+                projects: localProjects,
+            });
+
+            $databaseState.teams = localTeams;
+        }
     });
 
     const handleInserts = (payload: object) => {
@@ -63,6 +133,9 @@
     }
 
     const handleDeletes = async (payload: object) => {
+        if (!mounted)
+            return;
+        
         // @ts-ignore
         const task_id = payload.old.id;
         let task_coords: [number, number] = [-1, -1];
@@ -84,7 +157,8 @@
     }
 
     const handleUpdates = async (payload: object) => {
-        console.log('a');
+        if (!mounted)
+            return;
         
         // @ts-ignore
         const task_id = payload.old.id;
@@ -134,102 +208,153 @@
         .subscribe();
 </script>
 
-<main class="w-screen h-screen bg-gray2 flex flex-row overflow-hidden">
-    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-    <aside class="w-60 h-full flex-none flex flex-row bg-gray1 border-r border-white/5 overflow-hidden">
-        <div class="w-60 h-full flex-none flex flex-col" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
-            <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
-                <DropdownMenu.Root bind:open={accountDropdownOpen}>
-                    <DropdownMenu.Trigger>
-                        <button class="size-fit p-1.5 -ml-1.5 flex flex-row gap-1.5 hover:bg-white/5 rounded-md items-center">
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="18" height="18" rx="6" fill="#4CA8DF"/>
-                            </svg>
-                            <p class="text-xs text-white leading-[18px]">Truelines</p>
-                            <svg class="-mx-1" width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 5.59993L7.5 3.2666L10 5.59993" stroke="#A0A0A0"/>
-                                <path d="M10 8.3999L7.5 10.7332L5 8.3999" stroke="#A0A0A0"/>
-                            </svg>
-                        </button>
-                    </DropdownMenu.Trigger>
-                    <DropdownMenu.Content transition={blurInDownwards} transitionConfig={{ duration: 75 }} sideOffset={4} align={"start"} alignOffset={-6} class="shadow-[0px_97px_39px_rgba(0,0,0,0.02),0px_54px_33px_rgba(0,0,0,0.08),0px_24px_24px_rgba(0,0,0,0.13),0px_6px_13px_rgba(0,0,0,0.15)] w-[204px] h-[400px] rounded-md bg-[#313131] border border-[#ffffff06] "> 
-
-                    </DropdownMenu.Content>
-                </DropdownMenu.Root>
-    
-                <img src="https://nmrxzedrzfuiahctmrtt.supabase.co/storage/v1/object/public/profile-pictures/arvsrn.png?t=2024-03-06T14%3A03%3A33.796Z" class="cursor-pointer size-[18px] rounded-full select-none ml-auto" draggable="false" alt="">
-            </nav>
-            
-            <div class:fade={accountDropdownOpen} class="transition-all duration-75 ease-in-out">
-                <nav class="w-full h-9 px-6 gap-3 flex flex-row border-b border-white/5 select-none">
-                    <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 1} on:click={() => sidebarNavActive = 1}>Assigned to you</button>
-                    <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 2} on:click={() => sidebarNavActive = 2}>Progress</button>
+{#if mounted}
+    <main class="w-screen h-screen bg-gray2 flex flex-row overflow-hidden">
+        <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+        <aside class="w-60 h-full flex-none flex flex-row bg-gray1 border-r border-white/5 overflow-hidden">
+            <div class="w-60 h-full flex-none flex flex-col" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
+                <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
+                    <DropdownMenu.Root bind:open={accountDropdownOpen}>
+                        <DropdownMenu.Trigger>
+                            <button class="size-fit p-1.5 -ml-1.5 flex flex-row gap-1.5 hover:bg-white/5 rounded-md items-center">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="18" height="18" rx="6" fill="#4CA8DF"/>
+                                </svg>
+                                <p class="text-xs text-white leading-[18px]">{$databaseState.team.name}</p>
+                                <svg class="-mx-1" width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 5.59993L7.5 3.2666L10 5.59993" stroke="#A0A0A0"/>
+                                    <path d="M10 8.3999L7.5 10.7332L5 8.3999" stroke="#A0A0A0"/>
+                                </svg>
+                            </button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content transition={blurInDownwards} transitionConfig={{ duration: 75 }} sideOffset={4} align={"start"} alignOffset={-6} class="shadow-[0px_97px_39px_rgba(0,0,0,0.02),0px_54px_33px_rgba(0,0,0,0.08),0px_24px_24px_rgba(0,0,0,0.13),0px_6px_13px_rgba(0,0,0,0.15)] w-[204px] h-fit rounded-md bg-[#313131] border border-[#ffffff06] flex flex-col pb-1"> 
+                            {#each $databaseState.teams as team}
+                                <div class="w-fill h-fit flex flex-row px-3 pt-2">
+                                    <p class="text-white/75 text-[11px] leading-5 select-none">{team.name}</p>
+                                    <button class="size-5 rounded-md hover:bg-white/15 flex items-center justify-center text-white/75 ml-auto">
+                                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5Z" fill="currentColor"/>
+                                            <path d="M8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5Z" fill="currentColor"/>
+                                            <path d="M13.5 7.5C13.5 8.12132 12.9963 8.625 12.375 8.625C11.7537 8.625 11.25 8.12132 11.25 7.5C11.25 6.87868 11.7537 6.375 12.375 6.375C12.9963 6.375 13.5 6.87868 13.5 7.5Z" fill="currentColor"/>
+                                        </svg>                                        
+                                    </button>
+                                </div>
+                                <div class="flex flex-col px-1 w-full h-fit">
+                                    {#each team.projects as project}
+                                        <DropdownMenu.Item class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
+                                            {project.name}
+                                        </DropdownMenu.Item>
+                                    {/each}
+                                    <DropdownMenu.Item class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white/50 text-xs active:bg-white/10 hover:bg-white/10">
+                                        Create project
+                                    </DropdownMenu.Item>
+                                </div>
+                            {/each}
+                            <DropdownMenu.Separator class="my-1 bg-white/10 h-[1px]" />
+                            <div class="flex flex-col px-1 w-full h-fit">
+                                <div class="w-full h-fit rounded bg-white/10 flex flex-col p-2 select-none">
+                                    <p class="text-white leading-5 text-xs w-full">Invite</p>
+                                    <p class="text-white/60 leading-5 text-xs w-full">Invite collaborators to this team. Requires a Pro plan.</p>
+                                    <button class="rounded-md bg-[#0C8CE9] text-xs text-white px-2 h-6 w-fit mt-1 hover:bg-[#39A1ED]">Upgrade</button>
+                                </div>
+                            </div>
+                            <DropdownMenu.Separator class="my-1 bg-white/10 h-[1px]" />
+                            <div class="flex flex-col px-1 w-full h-fit">
+                                <DropdownMenu.Item class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
+                                    Create team
+                                    <span class="ml-auto text-white/50 text-[11px]">⌘N</span>
+                                </DropdownMenu.Item>
+                            </div>
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+        
+                    <div class="ml-auto">
+                        <DropdownMenu.Root>
+                            <DropdownMenu.Trigger class="translate-y-[3px]">
+                                <img src="https://nmrxzedrzfuiahctmrtt.supabase.co/storage/v1/object/public/profile-pictures/arvsrn.png?t=2024-03-06T14%3A03%3A33.796Z" class="cursor-pointer size-[18px] rounded-full select-none " draggable="false" alt="">
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Content align="end" sideOffset={8} class="w-32 h-fit outline-none rounded-md bg-[#4C4C4C]">
+                                <DropdownMenu.Item on:click={() => supabase.auth.signOut().then(x => window.location.assign('/'))} class="h-[25px] text-xs text-red-400 px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Log out</DropdownMenu.Item>
+                            </DropdownMenu.Content>
+                        </DropdownMenu.Root>
+                    </div>
                 </nav>
-                <div class="w-full h-fit p-3 flex flex-col gap-1.5">
-                    {#if mounted}
-                        {#each $databaseState.lists[0].tasks as task}
-                            <Task {task} fill></Task>
-                        {/each}
-                    {/if}
+                
+                <div class:fade={accountDropdownOpen} class="transition-all duration-75 ease-in-out">
+                    <nav class="w-full h-9 px-6 gap-3 flex flex-row border-b border-white/5 select-none">
+                        <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 1} on:click={() => sidebarNavActive = 1}>Assigned to you</button>
+                        <button class="text-[11px] text-white/50 w-fit h-full border-b-2 border-transparent" class:nav2-active={sidebarNavActive === 2} on:click={() => sidebarNavActive = 2}>Progress</button>
+                    </nav>
+                    <div class="w-full h-fit p-3 flex flex-col gap-1.5">
+                        {#if mounted}
+                            {#each $databaseState.lists[0].tasks as task}
+                                <Task {task} fill></Task>
+                            {/each}
+                        {/if}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="w-60 h-full flex-none" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
-            <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
-                <p class="text-xs text-white leading-5">Editing Event</p>
-                <button on:click={() => $appState.editingTask = null} class="bg-white/10 hover:bg-white/15 size-5 rounded-md ml-auto flex items-center justify-center text-white">
-                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8.5 10.5L5.5 7.5L8.5 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>                        
-                </button>
-            </nav>
-            <div class="w-full h-fit flex flex-col gap-2 p-3 border-b border-white/5">
-                <SidebarInput title="Title" value="Perform a thorough security audit and vulnerability assessment of the application to identify and address potential security risks, vulnerabilities, and weaknesses." />
-                <SidebarInput title="Description" value="" />
-            </div>
-            <div class="w-full h-fit p-3 flex flex-row gap-1 border-b border-white/5">
-                <div class="rounded px-1 w-fit h-fit select-none bg-[#F24822] text-white text-[11px] leading-[19px]">
-                    Backend
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <div class="w-60 h-full flex-none" class:slid={$appState.editingTask} class:unslid={!$appState.editingTask}>
+                <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
+                    <p class="text-xs text-white leading-5">Editing Event</p>
+                    <button on:click={() => $appState.editingTask = null} class="bg-white/10 hover:bg-white/15 size-5 rounded-md ml-auto flex items-center justify-center text-white">
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8.5 10.5L5.5 7.5L8.5 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>                        
+                    </button>
+                </nav>
+                <div class="w-full h-fit flex flex-col gap-2 p-3 border-b border-white/5">
+                    <SidebarInput title="Title" value="Perform a thorough security audit and vulnerability assessment of the application to identify and address potential security risks, vulnerabilities, and weaknesses." />
+                    <SidebarInput title="Description" value="" />
                 </div>
-                <div class="size-[19px] flex items-center justify-center bg-white/10 hover:bg-white/15 cursor-pointer rounded">
-                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 7.5H3M7.5 12V3" stroke="white" stroke-opacity="0.75"/>
-                    </svg>                        
+                <div class="w-full h-fit p-3 flex flex-row gap-1 border-b border-white/5">
+                    <div class="rounded px-1 w-fit h-fit select-none bg-[#F24822] text-white text-[11px] leading-[19px]">
+                        Backend
+                    </div>
+                    <div class="size-[19px] flex items-center justify-center bg-white/10 hover:bg-white/15 cursor-pointer rounded">
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 7.5H3M7.5 12V3" stroke="white" stroke-opacity="0.75"/>
+                        </svg>                        
+                    </div>
                 </div>
             </div>
-        </div>
-    </aside>
-    
-    <div class="size-full flex flex-col gap-4 p-8">
-        <div class="w-fit h-fit flex flex-row gap-3">
-            <div class="h-6 w-fit rounded-md bg-white/5 flex flex-row relative">
-                <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="1" on:click={set}>Board</div>
-                <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="2" on:click={set}>Timeline</div>
-    
-                <div class="absolute h-full rounded-md bg-white/10 transition-all duration-75 ease-in-out" style:left="{left}px" style:width="{width}px"></div>
+        </aside>
+        
+        <div class="size-full flex flex-col gap-4 p-8">
+            <div class="w-fit h-fit flex flex-row gap-3">
+                <div class="h-6 w-fit rounded-md bg-white/5 flex flex-row relative">
+                    <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="1" on:click={set}>Board</div>
+                    <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="2" on:click={set}>Timeline</div>
+        
+                    <div class="absolute h-full rounded-md bg-white/10 transition-all duration-75 ease-in-out" style:left="{left}px" style:width="{width}px"></div>
+                </div>
+        
+                <div class="size-6 flex items-center justify-center text-white/50">
+                    {#if $syncing}
+                        <svg transition:fade={{ duration: 75 }} width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4.625 11.5C0.870786 11.5 0.435941 5.53608 4.20355 5.02818C5.5349 1.16307 10.9999 2.15007 10.9999 6.25C14.2955 6.25 14.1678 11.5 10.9999 11.5H10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M7.5 12.5L7.5 6.5M7.5 6.5L5.5 8.5M7.5 6.5L9.5 8.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>       
+                    {/if}             
+                </div>
             </div>
-    
-            <div class="size-6 flex items-center justify-center text-white/50">
-                {#if $syncing}
-                    <svg transition:fade={{ duration: 75 }} width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4.625 11.5C0.870786 11.5 0.435941 5.53608 4.20355 5.02818C5.5349 1.16307 10.9999 2.15007 10.9999 6.25C14.2955 6.25 14.1678 11.5 10.9999 11.5H10.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M7.5 12.5L7.5 6.5M7.5 6.5L5.5 8.5M7.5 6.5L9.5 8.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>       
-                {/if}             
-            </div>
-        </div>
 
-        <div class="w-fit flex flex-row gap-4">
-            {#if mounted}
-                {#each $databaseState.lists as list}
-                    <List {list}></List>
-                {/each}
-            {/if}
+            <div class="w-fit flex flex-row gap-4">
+                {#if mounted}
+                    {#each $databaseState.lists as list}
+                        <List {list}></List>
+                    {/each}
+                {/if}
+            </div>
         </div>
-    </div>
-</main>
+    </main>
+{:else}
+    <main class="w-screen h-screen flex flex-col gap-2 items-center justify-center">
+        <Loader></Loader>
+    </main>
+{/if}
 
 <style>
     .active {

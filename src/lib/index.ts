@@ -1,10 +1,28 @@
 import { writable } from "svelte/store";
 import type { Task, StateList } from "./schema";
 
+export interface LocalTeam {
+    name: string;
+    id: string;
+    projects: LocalProject[],
+}
+
+export interface LocalProject {
+    name: string;
+    id: string;
+}
+
+export interface WithId<T> {
+    id: string;
+    name: T;
+}
+
 // place files you want to import through the `$lib` alias in this folder.
 export interface DatabaseState {
-    project: string;
-    lists: StateList[];
+    project: WithId<string>,
+    team: WithId<string>,
+    lists: StateList[],
+    teams: LocalTeam[],
 }
 
 export interface AppState {

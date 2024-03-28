@@ -90,7 +90,7 @@
             <p draggable="false" class="select-none w-full leading-5 text-xs text-white">{task.title}</p>
         </main>
     </ContextMenu.Trigger>
-    <ContextMenu.Content class="w-32 h-fit outline-none rounded-md bg-[#4C4C4C]">
+    <ContextMenu.Content class="w-32 h-fit outline outline-1 -outline-offset-1 outline-[#ffffff06] rounded-md bg-[#4C4C4C] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)]">
         <ContextMenu.Item class="h-[25px] text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Copy</ContextMenu.Item>
         <ContextMenu.Item class="h-[25px] text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Paste here</ContextMenu.Item>
         <ContextMenu.Item on:click={() => del()} class="h-[25px] text-xs text-red-400 px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Delete</ContextMenu.Item>

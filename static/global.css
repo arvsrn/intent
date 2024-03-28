@@ -20,3 +20,7 @@
 :root {
     --ease: cubic-bezier(.26,.71,.45,1);
 }
+
+body {
+    background: #202020;
+}

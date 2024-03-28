@@ -8,8 +8,6 @@
 
     let mounted: boolean = false;
     onMount(() => mounted = true);
-
-    
 </script>
 
 <slot />

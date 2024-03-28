@@ -2,5 +2,7 @@
 	"/": [
 		"src/routes/+page.server.ts"
 	],
-	"/login": []
+	"/login": [],
+	"/onboarding": [],
+	"/teams/create": []
 }

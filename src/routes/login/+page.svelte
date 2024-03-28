@@ -1,14 +1,18 @@
 <script lang="ts">
     import { supabase } from "$lib/supabaseClient";
-    import SidebarInput from "../SidebarInput.svelte";
+    import Loader from "../Loader.svelte";
+    
     let sent: boolean = false;
     let showLoader: boolean = false;
     let email: string = "";
-</script>
+    let error: boolean = false;
 
-<main class="w-screen h-screen bg-gray2 flex flex-col gap-2 items-center justify-center">
-    <input bind:value={email} class="w-60 h-9 rounded-lg border border-[#FFFFFF06] bg-[#FFFFFF06] outline-none px-3 text-xs text-white placeholder:text-white/50" placeholder="Email..." type="text">
-    <button on:click={async () => {
+    const sendOTP = async () => {
+        if (sent) {
+            window.location.assign('https://www.gmail.com');
+            return;
+        }
+        
         if (/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
             sent = false;
             showLoader = true;
@@ -17,36 +21,45 @@
             showLoader = false;
             sent = true;
         } else {
-            // TODO
-            alert('invalid email bozo')
+            error = true;
+            setTimeout(() => error = false, 250);
         }
-    }} class="w-60 h-[35px] rounded-lg bg-white/20 border border-[#FFFFFF06] flex items-center justify-center text-xs text-white select-none hover:bg-white/25">
+    }
+</script>
+
+<main class="w-screen h-screen bg-gray2 flex flex-col gap-2 items-center justify-center">
+    <input class:invalid={error} bind:value={email} on:keydown={e => { if (e.key === 'Enter') sendOTP() }} class="w-60 h-9 transition-all duration-75 ease-linear rounded-lg border border-white/5 bg-transparent active:border-white/10 hover:border-white/10 outline-none px-3 text-xs text-white placeholder:text-white/50" placeholder="Email..." type="text">
+    <button on:click={sendOTP} class="w-60 h-8 rounded-lg bg-[#0C8CE9] hover:bg-[#39A1ED] border border-[#FFFFFF06] flex items-center justify-center text-xs text-white select-none font-medium">
         {#if showLoader}
-            <div class="loader"></div>
+            <Loader />
         {:else}
-            {sent ? 'Sent!' : '✨ Send Magic Link →'}
+            {sent ? 'Open Gmail' : '✨ Send Magic Link →'}
         {/if}
     </button>
     <p class="w-60 h-fit leading-5 text-xs text-white/50 text-center">An account will be created automatically if you don't have one.</p>
 </main>
 
 <style>
-    @keyframes donut-spin {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
+    .invalid {
+        border: 1px solid #F24822;
+        animation: shake 250ms linear;
     }
 
-    .loader {
-        display: inline-block;
-        border: 3px solid rgba(255, 255, 255, 0.25);
-        border-left-color: white;
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        animation: donut-spin 1.2s linear infinite;
+    @keyframes shake {
+        10%, 90% {
+            transform: translate3d(-1px, 1px, 0);
+        }
+        
+        20%, 80% {
+            transform: translate3d(2px, 0, 0);
+        }
+
+        30%, 50%, 70% { 
+            transform: translate3d(-3px, -1px, 0);
+        }
+
+        40%, 60% {
+            transform: translate3d(3px, 2px, 0);
+        }
     }
 </style>
