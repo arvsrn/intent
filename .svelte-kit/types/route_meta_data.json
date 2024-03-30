@@ -2,7 +2,16 @@
 	"/": [
 		"src/routes/+page.server.ts"
 	],
-	"/login": [],
-	"/onboarding": [],
-	"/teams/create": []
+	"/create/account": [
+		"src/routes/create/account/+page.server.ts"
+	],
+	"/create/project": [
+		"src/routes/create/project/+page.server.ts"
+	],
+	"/create/team": [
+		"src/routes/create/team/+page.server.ts"
+	],
+	"/login": [
+		"src/routes/login/+page.server.ts"
+	]
 }

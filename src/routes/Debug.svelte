@@ -1,6 +1,6 @@
 <!-- this component shows the app state -->
 <script lang="ts">
-    import { appState, databaseState } from "$lib";
+    import { appState, databaseState, localState } from "$lib";
 
     let selected: number = 1;
 </script>
@@ -14,6 +14,7 @@
     <div class="h-[27px] w-full border-y border-white/5 my-1 flex flex-row flex-none">
         <button class="w-fit px-2 h-full flex items-center justify-center text-white/60 text-[10px] border-r border-white/5" style:font-family="IBM Plex Mono" on:click={() => selected = 0} class:selected={selected === 0}>AppState</button>
         <button class="w-fit px-2 h-full flex items-center justify-center text-white/60 text-[10px] border-r border-white/5" style:font-family="IBM Plex Mono" on:click={() => selected = 1} class:selected={selected === 1}>DatabaseState</button>
+        <button class="w-fit px-2 h-full flex items-center justify-center text-white/60 text-[10px] border-r border-white/5" style:font-family="IBM Plex Mono" on:click={() => selected = 2} class:selected={selected === 2}>LocalState</button>
         <button class="w-fit px-2 h-full flex items-center justify-center text-white/60 text-[10px] border-r border-white/5" style:font-family="IBM Plex Mono" on:click={() => selected = selected}>Reload</button>
     </div>
 
@@ -22,6 +23,8 @@
             <pre class="text-[10px] size-full text-white/80" style:font-family="IBM Plex Mono">{JSON.stringify($databaseState, null, 2)}</pre>
         {:else if selected === 0 && $appState}
             <pre class="text-[10px] size-full text-white/80" style:font-family="IBM Plex Mono">{JSON.stringify($appState, null, 2)}</pre>    
+        {:else if selected === 2 && $localState}
+            <pre class="text-[10px] size-full text-white/80" style:font-family="IBM Plex Mono">{JSON.stringify($localState, null, 2)}</pre>    
         {/if}
     </div>
 </main>

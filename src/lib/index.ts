@@ -1,5 +1,7 @@
 import { writable } from "svelte/store";
 import type { Task, StateList } from "./schema";
+import { onMount } from "svelte";
+import { persisted } from "svelte-persisted-store";
 
 export interface LocalTeam {
     name: string;
@@ -25,6 +27,11 @@ export interface DatabaseState {
     teams: LocalTeam[],
 }
 
+export interface LocalState {
+    project: WithId<string>,
+    team: WithId<string>,
+}
+
 export interface AppState {
     isDraggingTask: boolean;
     draggingTask: Task | null;
@@ -44,6 +51,10 @@ export let appState = writable<AppState>({
 });
 
 export let databaseState = writable<DatabaseState>();
+
+// localState is set initially in +page.svelte
+// @ts-ignore
+export let localState = persisted<LocalState>('state', {});
 export let syncing = writable<boolean>(false);
 
 export let colors = ["#F24822", "#FFA500", "#FFC700", "#11DF25", "#258DEC", "#871DF0", "#D448D4", "#4F2C18", "#D8D8D8", "#4A4A4A"];

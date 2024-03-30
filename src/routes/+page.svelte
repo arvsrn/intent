@@ -3,7 +3,7 @@
     import Task from "./Task.svelte";
     import type { Task as TaskSchema, StateList, List as ListSchema } from "$lib/schema";
     import { getLists, getTasks } from "$lib/database";
-    import { appState, databaseState, clickOutside, blurInDownwards, syncing, type LocalTeam, type LocalProject, type WithId } from "$lib";
+    import { appState, databaseState, clickOutside, blurInDownwards, syncing, type LocalTeam, type LocalProject, type WithId, localState } from "$lib";
     import { onMount } from "svelte";
     import SidebarInput from "./SidebarInput.svelte";
     import { DropdownMenu } from "bits-ui";
@@ -35,18 +35,6 @@
     };
 
     onMount(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user === null) {
-            window.location.assign("/login");
-        }
-
-        const userData = await supabase.from("users").select().eq('id', user?.id);
-
-        if (userData.data?.length === 0) {
-            window.location.assign('/onboarding');
-        }
-
         let lists: StateList[];
         let project: WithId<string> = {
             name: "",
@@ -60,7 +48,7 @@
         const teams = await supabase.from("teams").select();
 
         if (!teams.data || teams.data.length < 1) {
-            window.location.assign('/teams/create');
+            window.location.assign('/create/team');
         }
 
         // @ts-ignore
@@ -78,6 +66,11 @@
         team.id = teams.data[0].id;
         // @ts-ignore
         team.name = teams.data[0].name;
+
+        // localState hasn't been set yet
+        if (Object.entries($localState).length === 0) {
+            $localState = { project, team };
+        }
 
         lists = await Promise.all((await getLists(project.id)).map(async (x: ListSchema): Promise<StateList> => {
             return { ...x, tasks: await getTasks(x.id) };
@@ -206,6 +199,15 @@
         .channel('channel3')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tasks' }, handleUpdates)
         .subscribe();
+
+    let editingTaskTitle = "";
+    let editingTaskDescription = "";
+
+    const onEditingTaskChange = () => {
+        if ($appState.editingTask) {
+                   
+        }
+    }
 </script>
 
 {#if mounted}
@@ -241,11 +243,11 @@
                                 </div>
                                 <div class="flex flex-col px-1 w-full h-fit">
                                     {#each team.projects as project}
-                                        <DropdownMenu.Item class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
+                                        <DropdownMenu.Item on:click={() => $databaseState.project = project} class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
                                             {project.name}
                                         </DropdownMenu.Item>
                                     {/each}
-                                    <DropdownMenu.Item class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white/50 text-xs active:bg-white/10 hover:bg-white/10">
+                                    <DropdownMenu.Item on:click={() => window.location.assign('/create/project')} class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white/50 text-xs active:bg-white/10 hover:bg-white/10">
                                         Create project
                                     </DropdownMenu.Item>
                                 </div>
@@ -260,7 +262,7 @@
                             </div>
                             <DropdownMenu.Separator class="my-1 bg-white/10 h-[1px]" />
                             <div class="flex flex-col px-1 w-full h-fit">
-                                <DropdownMenu.Item class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
+                                <DropdownMenu.Item on:click={() => window.location.assign('/create/team')} class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
                                     Create team
                                     <span class="ml-auto text-white/50 text-[11px]">⌘N</span>
                                 </DropdownMenu.Item>
@@ -273,8 +275,12 @@
                             <DropdownMenu.Trigger class="translate-y-[3px]">
                                 <img src="https://nmrxzedrzfuiahctmrtt.supabase.co/storage/v1/object/public/profile-pictures/arvsrn.png?t=2024-03-06T14%3A03%3A33.796Z" class="cursor-pointer size-[18px] rounded-full select-none " draggable="false" alt="">
                             </DropdownMenu.Trigger>
-                            <DropdownMenu.Content align="end" sideOffset={8} class="w-32 h-fit outline-none rounded-md bg-[#4C4C4C]">
-                                <DropdownMenu.Item on:click={() => supabase.auth.signOut().then(x => window.location.assign('/'))} class="h-[25px] text-xs text-red-400 px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Log out</DropdownMenu.Item>
+                            <DropdownMenu.Content align="end" transition={blurInDownwards} transitionConfig={{ duration: 75 }} sideOffset={8} alignOffset={4} class="shadow-[0px_97px_39px_rgba(0,0,0,0.02),0px_54px_33px_rgba(0,0,0,0.08),0px_24px_24px_rgba(0,0,0,0.13),0px_6px_13px_rgba(0,0,0,0.15)] w-[204px] h-fit rounded-md bg-[#313131] border border-[#ffffff06] flex flex-col pb-1"> 
+                                <div class="flex flex-col px-1 pt-1 w-full h-fit">
+                                    <DropdownMenu.Item on:click={() => supabase.auth.signOut().then(x => window.location.assign('/'))} class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-red-400 text-xs active:bg-white/10 hover:bg-white/10">
+                                        Log out
+                                    </DropdownMenu.Item>
+                                </div>
                             </DropdownMenu.Content>
                         </DropdownMenu.Root>
                     </div>
@@ -306,8 +312,8 @@
                     </button>
                 </nav>
                 <div class="w-full h-fit flex flex-col gap-2 p-3 border-b border-white/5">
-                    <SidebarInput title="Title" value="Perform a thorough security audit and vulnerability assessment of the application to identify and address potential security risks, vulnerabilities, and weaknesses." />
-                    <SidebarInput title="Description" value="" />
+                    <SidebarInput title="Title" bind:value={editingTaskTitle} />
+                    <SidebarInput title="Description" bind:value={editingTaskDescription} />
                 </div>
                 <div class="w-full h-fit p-3 flex flex-row gap-1 border-b border-white/5">
                     <div class="rounded px-1 w-fit h-fit select-none bg-[#F24822] text-white text-[11px] leading-[19px]">

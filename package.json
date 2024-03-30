@@ -25,6 +25,7 @@
 	"type": "module",
 	"dependencies": {
 		"@supabase/supabase-js": "^2.39.7",
-		"bits-ui": "^0.21.0"
+		"bits-ui": "^0.21.0",
+		"svelte-persisted-store": "^0.9.1"
 	}
 }
