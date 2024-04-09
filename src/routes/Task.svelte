@@ -4,6 +4,8 @@
     import { ContextMenu } from "bits-ui";
     import { supabase } from "$lib/supabaseClient";
     import { syncing } from "$lib";
+    import Pill from "./Tag.svelte";
+    import Tag from "./Tag.svelte";
 
     export let task: Task;
     export let fill: boolean = false;
@@ -88,12 +90,26 @@
             data-is-dragging="{dragging}"
         >
             <p draggable="false" class="select-none w-full leading-5 text-xs text-white">{task.title}</p>
+
+            {#if task && task.tags && task.tags.length > 0}
+                <div class="w-full flex flex-row flex-wrap gap-1 mb-1 mt-2">
+                    {#each task.tags as tag}
+                        {@const realTag = $databaseState.tags.find(x => x.id === tag)}
+
+                        {#if realTag}
+                            <Tag tag={realTag}></Tag>
+                        {/if}
+                    {/each}
+                </div>
+            {/if}
         </main>
+    
     </ContextMenu.Trigger>
-    <ContextMenu.Content class="w-32 h-fit outline outline-1 -outline-offset-1 outline-[#ffffff06] rounded-md bg-[#4C4C4C] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)]">
-        <ContextMenu.Item class="h-[25px] text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Copy</ContextMenu.Item>
-        <ContextMenu.Item class="h-[25px] text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Paste here</ContextMenu.Item>
-        <ContextMenu.Item on:click={() => del()} class="h-[25px] text-xs text-red-400 px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded-md select-none cursor-pointer">Delete</ContextMenu.Item>
+
+    <ContextMenu.Content class="w-36 p-1 h-fit outline outline-1 -outline-offset-1 outline-[#ffffff06] rounded-lg bg-[#404040] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)]">
+        <ContextMenu.Item class="h-7 text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Copy</ContextMenu.Item>
+        <ContextMenu.Item class="h-7 text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Paste here</ContextMenu.Item>
+        <ContextMenu.Item on:click={() => del()} class="h-7 text-xs text-[#FF8A7B] px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Delete</ContextMenu.Item>
     </ContextMenu.Content>
 </ContextMenu.Root>
 

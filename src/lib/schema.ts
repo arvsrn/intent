@@ -1,9 +1,17 @@
+export interface Tag {
+    name: string;
+    color: number;
+    id: string;
+    project_id: string;
+}
+
 export interface Task {
     id: string;
     list_id: string;
     title: string;
     description: string;
     index: number;
+    tags: string[]
 }
 
 export interface List {

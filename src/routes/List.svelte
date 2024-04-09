@@ -31,7 +31,7 @@
 
     const onMouseUp = (event: MouseEvent) => {
         if (Date.now() - $appState.lastMouseDown < 125) {
-            $appState.editingTask = $appState.draggingTask?.id ?? null;
+            $appState.editingTask = $appState.draggingTask;
         } else if ($appState.draggingTask) {
             // updating these updates $databaseState for some reason
             const originList = $databaseState.lists.find(x => x.id === $appState.draggingTask?.list_id)?.tasks;
@@ -86,6 +86,7 @@
                     description: "",
                     id: '',
                     list_id: list.id,
+                    tags: [],
                 }];
 
                 const newTaskTitle_ = newTaskTitle;
@@ -100,6 +101,7 @@
                         title: newTaskTitle_,
                         description: "", 
                         list_id: list.id,
+                        tags: [],
                     });
                 
                 // let task = await supabase

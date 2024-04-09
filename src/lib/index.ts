@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import type { Task, StateList } from "./schema";
+import type { Task, StateList, Tag } from "./schema";
 import { onMount } from "svelte";
 import { persisted } from "svelte-persisted-store";
 
@@ -25,6 +25,7 @@ export interface DatabaseState {
     team: WithId<string>,
     lists: StateList[],
     teams: LocalTeam[],
+    tags: Tag[],
 }
 
 export interface LocalState {
@@ -38,7 +39,7 @@ export interface AppState {
     draggingTaskHeight: number;
     lastMouseDown: number;
     draggingTimeout: number;
-    editingTask: string | null;
+    editingTask: Task | null;
 }
 
 export let appState = writable<AppState>({
@@ -57,7 +58,8 @@ export let databaseState = writable<DatabaseState>();
 export let localState = persisted<LocalState>('state', {});
 export let syncing = writable<boolean>(false);
 
-export let colors = ["#F24822", "#FFA500", "#FFC700", "#11DF25", "#258DEC", "#871DF0", "#D448D4", "#4F2C18", "#D8D8D8", "#4A4A4A"];
+export let colors = ["#F24822", "#FF7C32", "#FFC700", "#11DF25", "#258DEC", "#871DF0", "#D448D4", "#4F2C18", "#D8D8D8", "#4A4A4A"];
+export let colorsNamed = [["Red", "#F24822"], ["Orange", "#FF7C32"], ["Yellow", "#FFC700"], ["Green", "#11DF25"], ["Blue", "#258DEC"], ["Purple", "#871DF0"], ["Pink", "#D448D4"], ["Brown", "#4F2C18"], ["White", "#D8D8D8"], ["Gray", "#4A4A4A"]]
 
 export function clickOutside(node: HTMLElement, handler: (e: MouseEvent) => void): { destroy: () => void } {
     const onClick = (event: MouseEvent) =>
