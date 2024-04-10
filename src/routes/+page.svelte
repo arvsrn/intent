@@ -12,6 +12,9 @@
     import Loader from "./Loader.svelte";
     import Tag from "./Tag.svelte";
     import type { Tag as TagSchema } from "$lib/schema";
+    import Blanket from "./Blanket.svelte";
+    import SettingsModal from "./SettingsModal.svelte";
+    import NewListModal from "./NewListModal.svelte";
 
     let mounted: boolean = false;
 
@@ -65,13 +68,13 @@
         }
 
         // @ts-ignore
-        project.id = projects.data[0].id;
+        project.id = $localState.project.id ?? projects.data[0].id;
         // @ts-ignore
-        project.name = projects.data[0].name;
+        project.name = $localState.project.name ?? projects.data[0].name;
         // @ts-ignore
-        team.id = teams.data[0].id;
+        team.id = $localState.team.name ?? teams.data[0].id;
         // @ts-ignore
-        team.name = teams.data[0].name;
+        team.name = $localState.team.name ?? teams.data[0].name;
 
         // localState hasn't been set yet
         if (Object.entries($localState).length === 0) {
@@ -212,9 +215,6 @@
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tasks' }, handleUpdates)
         .subscribe();
 
-    let editingTaskTitle = "";
-    let editingTaskDescription = "";
-
     const onSidebarTagSearchTermUpdate = () => {
         if ($databaseState) {
             sidebarShowingTags = [];
@@ -237,7 +237,10 @@
             if ($appState.editingTask)
                 supabase.from("tasks").update($appState.editingTask).eq('id', $appState.editingTask?.id).then(x => console.log(x))
         }, 1000);
-    };  
+    };
+
+    let settingsModalOpen: boolean = false;
+    let showingNewListModal: boolean = false;
 
     $: sidebarTagSearchTerm, onSidebarTagSearchTermUpdate();
     $: $appState.editingTask, onTaskEdited();
@@ -266,7 +269,7 @@
                             {#each $databaseState.teams as team}
                                 <div class="w-fill h-fit flex flex-row px-3 pt-2">
                                     <p class="text-white/75 text-[11px] leading-5 select-none">{team.name}</p>
-                                    <button class="size-5 rounded-md hover:bg-white/15 flex items-center justify-center text-white/75 ml-auto">
+                                    <button on:click={() => { settingsModalOpen = true; accountDropdownOpen = false }} class="size-5 rounded-md hover:bg-white/15 flex items-center justify-center text-white/75 ml-auto">
                                         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5Z" fill="currentColor"/>
                                             <path d="M8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5Z" fill="currentColor"/>
@@ -276,7 +279,17 @@
                                 </div>
                                 <div class="flex flex-col px-1 w-full h-fit">
                                     {#each team.projects as project}
-                                        <DropdownMenu.Item on:click={() => $databaseState.project = project} class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
+                                        <DropdownMenu.Item on:click={() => {
+                                            $databaseState.project = project;
+                                            $databaseState.team = team;
+                                            $localState.project = project;
+                                            $localState.team = {
+                                                name: team.name,
+                                                id: team.id,
+                                            };
+
+                                            window.location.assign('/');
+                                        }} class="outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
                                             {project.name}
                                         </DropdownMenu.Item>
                                     {/each}
@@ -309,8 +322,9 @@
                                 <img src="https://nmrxzedrzfuiahctmrtt.supabase.co/storage/v1/object/public/profile-pictures/arvsrn.png?t=2024-03-06T14%3A03%3A33.796Z" class="cursor-pointer size-[18px] rounded-full select-none " draggable="false" alt="">
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content align="end" transition={blurInDownwards} transitionConfig={{ duration: 75 }} sideOffset={8} alignOffset={4} class="w-36 p-1 h-fit outline outline-1 -outline-offset-1 outline-[#ffffff06] rounded-lg bg-[#404040] shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)]">
-                                <DropdownMenu.Item on:click={() => supabase.auth.signOut().then(x => window.location.assign('/'))} class="h-7 text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Preferences</DropdownMenu.Item>
-                                <DropdownMenu.Item on:click={() => supabase.auth.signOut().then(x => window.location.assign('/'))} class="h-7 text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Log out</DropdownMenu.Item>
+                                <DropdownMenu.Item on:click={() => settingsModalOpen = true} class="h-7 text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Profile</DropdownMenu.Item>
+                                <DropdownMenu.Item on:click={() => settingsModalOpen = true} class="h-7 text-xs text-white px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Preferences</DropdownMenu.Item>
+                                <DropdownMenu.Item on:click={() => supabase.auth.signOut().then(x => window.location.assign('/'))} class="h-7 text-xs text-[#FF8A7B] px-2 leading-[25px] hover:bg-white/10 active:bg-white/15 outline-none !ring-0 !ring-transparent rounded select-none cursor-pointer flex items-center">Log out</DropdownMenu.Item>
                             </DropdownMenu.Content>
                         </DropdownMenu.Root>
                     </div>
@@ -336,7 +350,7 @@
                 {#if $appState.editingTask}
                     <nav class="w-full h-12 border-b border-white/5 flex flex-row px-6 items-center">
                         <p class="text-xs text-white leading-5">Editing Event</p>
-                        <button on:click={() => $appState.editingTask = null} class="bg-white/10 hover:bg-white/15 size-5 rounded-md ml-auto flex items-center justify-center text-white">
+                        <button on:click={() => $appState.editingTask = null} class="bg-white/10 hover:bg-white/15 size-5 rounded-md ml-auto flex items-center justify-center text-white/75">
                             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M8.5 10.5L5.5 7.5L8.5 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>                        
@@ -436,8 +450,8 @@
 
                                                             sidebarTagSearchTerm = "";
                                                         })} class="gap-2 outline-none w-full h-8 rounded-md px-2 flex flex-row items-center select-none cursor-pointer text-white text-xs active:bg-white/10 hover:bg-white/10">
-                                                            <div class="size-2 rounded-full" style:background={color[1]}></div>
-                                                            {color[0]}
+                                                            <div class="size-2 rounded-full" style:background={colors[i]}></div>
+                                                            {color}
                                                         </DropdownMenu.Item>
                                                     {/each}
                                                 </div>
@@ -454,7 +468,7 @@
             </div>
         </aside>
         
-        <div class="size-full flex flex-col gap-4 p-8">
+        <div class="size-full flex flex-col gap-4 pl-8 pt-8">
             <div class="w-fit h-fit flex flex-row gap-3">
                 <div class="h-6 w-fit rounded-md bg-white/5 flex flex-row relative">
                     <div class="flex flex-row items-center justify-center px-2 w-fit h-full text-[11px] text-white rounded-md select-none cursor-pointer bg-transparent" data-tab="1" on:click={set}>Board</div>
@@ -473,15 +487,29 @@
                 </div>
             </div>
 
-            <div class="w-fit flex flex-row gap-4">
+            <div data-scrollbars class="w-full h-full overflow-x-scroll flex flex-row gap-4 pb-8">
                 {#if mounted}
                     {#each $databaseState.lists as list}
                         <List {list}></List>
                     {/each}
                 {/if}
+
+                <button on:click={() => showingNewListModal = true} class="flex-none h-8 w-fit px-3 text-xs border border-white/5 rounded-lg text-white hover:border-[#ffffff06] hover:bg-white/5">New list</button>
             </div>
         </div>
     </main>
+
+    {#if settingsModalOpen}
+        <Blanket onExit={() => settingsModalOpen = false}>
+            <SettingsModal></SettingsModal>
+        </Blanket>
+    {/if}
+
+    {#if showingNewListModal}
+        <Blanket onExit={() => showingNewListModal = false}>
+            <NewListModal bind:showingNewListModal={showingNewListModal} />
+        </Blanket>
+    {/if}
 {:else}
     <main class="w-screen h-screen flex flex-col gap-2 items-center justify-center">
         <Loader></Loader>
@@ -533,5 +561,30 @@
 
     .checkbox-selected {
         @apply border-transparent bg-[#258DEC] text-white;
+    }
+
+    [data-scrollbars]::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    [data-scrollbars]::-webkit-scrollbar-track {
+        @apply bg-white/5;
+    }
+
+    [data-scrollbars]::-webkit-scrollbar-thumb {
+        @apply bg-white/20;
+    }
+
+    [data-scrollbars]::-webkit-scrollbar-thumb:hover {
+        @apply bg-white/40;
+    }
+
+    [data-scrollbars]::-webkit-scrollbar-corner {
+        @apply bg-white/5;
+    }
+
+    .selected {
+        @apply text-white/80;
     }
 </style>

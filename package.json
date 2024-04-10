@@ -24,6 +24,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@rollup/rollup-win32-x64-msvc": "^4.14.1",
 		"@supabase/supabase-js": "^2.39.7",
 		"bits-ui": "^0.21.0",
 		"svelte-persisted-store": "^0.9.1"

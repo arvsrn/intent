@@ -26,13 +26,9 @@
             const userId = data.data.session?.user.id;
             if (!userId) return console.error('womp womp');
 
-            console.log(userId);
-
-            const team = await supabase.from("teams").select().eq('id', $localState.team.id);
-            
             await supabase.from("projects").insert({
                 name: projectName,
-                team_id: "",
+                team_id: $localState.team.id,
             });
 
             // TODO: this does not ensure unique teams with the same name
