@@ -68,13 +68,13 @@
         }
 
         // @ts-ignore
-        project.id = $localState.project.id ?? projects.data[0].id;
+        project.id = $localState.project?.id ?? projects.data[0].id;
         // @ts-ignore
-        project.name = $localState.project.name ?? projects.data[0].name;
+        project.name = $localState.project?.name ?? projects.data[0].name;
         // @ts-ignore
-        team.id = $localState.team.name ?? teams.data[0].id;
+        team.id = $localState.team?.name ?? teams.data[0].id;
         // @ts-ignore
-        team.name = $localState.team.name ?? teams.data[0].name;
+        team.name = $localState.team?.name ?? teams.data[0].name;
 
         // localState hasn't been set yet
         if (Object.entries($localState).length === 0) {
